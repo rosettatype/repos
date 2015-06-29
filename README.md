@@ -4,7 +4,7 @@ Quick and dirty Python script to track multiple Git repositories and easily fetc
 
 It stores a list of repositories in a file `.repos` in your home folder, so you can refer to them with simple short names or all together.
 
-You might want to consider using [Pug](https://github.com/ashur/pug) which is prettier and more versatile. I just felt like Python.
+You might want to consider using [Pug](https://github.com/ashur/pug) which is prettier and more versatile. I just felt like Python. I tried to keep the command-line interface similar.
 
 
 ## Usage
@@ -15,6 +15,12 @@ Add repo to the list:
 
 ``` bash
 $ repos add <name> <path>
+```
+
+`<name>` is best kept short and without spaces. E.g.:
+
+``` bash
+$ repos add myproject ~/Project/MyMy/
 ```
 
 Add all repos in subdirectories of <path> to the list, names are generated automatically from the relative path:
@@ -74,3 +80,5 @@ $ repos list
 Note: this is a result of my procrastination. Do not expect me to make it less dirty.
 
 Requires Python 2.5 or higher I guess.
+
+Copyright (c) 2015 David Březina. [MIT licence](LICENCE.md)

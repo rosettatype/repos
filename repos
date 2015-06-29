@@ -6,11 +6,10 @@ repos
 
 import os, sys, optparse, json
 from subprocess import call
-from pipes import quote
 
 # command-line usage
 __version__ = "1.00"
-__copyright__ = "Copyright (c) 2015 by David Brezina"
+__copyright__ = "Copyright (c) 2015 David Brezina"
 __description__ = "Manage multiple Git repos easily."
 __requirements__ = "Requires Python 2.5 or higher I guess."
 
@@ -88,7 +87,7 @@ class repos(object):
 					self.repos[name]["path"] = path
 					self.repos[name]["enabled"] = True
 				else:
-					logger("There is no Git repo at '%s'" % path, ERROR)
+					logger("There does not seem to be any Git repo at '%s'" % path, ERROR)
 			else:
 				logger("Repo with name '%s' or path '%s' already exist in the list." % (name, path), ERROR)
 		else:
@@ -137,7 +136,7 @@ class repos(object):
 		Pull changes for repo with given name.
 		"""
 
-		if name in self.repos and self.repos[name]["enabled"]:
+		if name in self.repos:
 			logger("Updating '%s'." % name)
 			self.git("git pull;git submodule update --init --recursive", name)
 		else:
@@ -151,7 +150,7 @@ class repos(object):
 		Pushing repo with given name.
 		"""
 
-		if name in self.repos and self.repos[name]["enabled"]:
+		if name in self.repos:
 			logger("Pushing '%s'." % name)
 			self.git("git push origin master", name)
 		else:
@@ -168,13 +167,14 @@ class repos(object):
 		else:
 			logger("Repo '%s' is not in the list." % name, ERROR)
 
+
 	def list(self):
 		"""
 		List of repos with +/- to signify if it is enabled/disabled.
 		"""
 
 		for name in self.repos:
-			bullet = "+" if self.repos[name]["enabled"] else "-" # sorry!
+			bullet = "+ " if self.repos[name]["enabled"] else "- " # sorry!
 			logger(bullet + name)
 
 
@@ -194,8 +194,12 @@ class repos(object):
 		Call method for all repos.
 		"""
 
-		for repo in self.repos:
-			getattr(self, func)(repo)
+		if func in ["pull", "up", "push"]:
+			for repo in [name for name, details in self.repos.items() if details["enabled"]]:
+				getattr(self, func)(repo)
+		else:
+			for repo in self.repos:
+				getattr(self, func)(repo)
 
 def main():
 	(options, args) = parseOptions()
