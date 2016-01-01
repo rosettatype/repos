@@ -72,6 +72,21 @@ class repos(object):
 				output = json.dumps(self.repos, sort_keys=True, indent=4, separators=(',', ': '))
 				outfile.write(output)
 
+	def check(self, name):
+		"""
+		Check if record is active repo.
+		"""
+
+		if name in self.repos:
+			if os.path.isdir(os.path.join(self.repos[name]["path"], ".git")):
+				return True
+			else:
+				logger("Folder '%s' saved under the name '%s' is not a git repo." % (self.repos[name]["path"], name), ERROR)
+				return False
+		else:
+			logger("Repo '%s' is not in the list." % name, ERROR)
+			return False
+
 	def add(self, name = "", path = ""):
 		"""
 		Add repo path to list.
@@ -84,7 +99,7 @@ class repos(object):
 				if os.path.isdir(os.path.join(path, ".git")):
 					logger("Adding repo '%s' at path '%s'." % (name, path))
 					self.repos[name] = {}
-					self.repos[name]["path"] = path
+					self.repos[name]["path"] = os.path.abspath(path)
 					self.repos[name]["enabled"] = True
 				else:
 					logger("There does not seem to be any Git repo at '%s'" % path, ERROR)
@@ -114,33 +129,27 @@ class repos(object):
 		Set enabled status for repo.
 		"""
 
-		if name in self.repos:
+		if self.check(name):
 			logger("Enabling '%s'." % name)
 			self.repos[name]["enabled"] = True
-		else:
-			logger("Repo '%s' is not in the list." % name, ERROR)
 
 	def disable(self, name = ""):
 		"""
 		Set disabled status for repo.
 		"""
 
-		if name in self.repos:
+		if self.check(name):
 			logger("Disabling '%s'." % name)
 			self.repos[name]["enabled"] = False
-		else:
-			logger("Repo '%s' is not in the list." % name, ERROR)
 
 	def pull(self, name = ""):
 		"""
 		Pull changes for repo with given name.
 		"""
 
-		if name in self.repos:
+		if self.check(name):
 			logger("Updating '%s'." % name)
 			self.git("git pull;git submodule update --init --recursive", name)
-		else:
-			logger("Repo '%s' is not in the list." % name, ERROR)
 
 	def up(self, name = ""):
 		self.pull(name)
@@ -150,23 +159,18 @@ class repos(object):
 		Pushing repo with given name.
 		"""
 
-		if name in self.repos:
+		if self.check(name):
 			logger("Pushing '%s'." % name)
 			self.git("git push origin master", name)
-		else:
-			logger("Repo '%s' is not in the list." % name, ERROR)
 
 	def show(self, name = ""):
 		"""
 		Show repo details.
 		"""
 
-		if name in self.repos:
-			enabled = "enabled" if self.repos[name]["enabled"] else "disabled" # I had to :)
+		if self.check(name):
+			enabled = "enabled" if self.repos[name]["enabled"] else "disabled"
 			logger("%s %s (%s):\n  %s" % (name, enabled, self.repos[name]["path"]))
-		else:
-			logger("Repo '%s' is not in the list." % name, ERROR)
-
 
 	def list(self):
 		"""
@@ -177,13 +181,12 @@ class repos(object):
 			bullet = "+ " if self.repos[name]["enabled"] else "- " # sorry!
 			logger(bullet + name)
 
-
 	def git(self, command = "git pull", name = ""):
 		"""
 		Run git command for repo.
 		"""
 
-		if name in self.repos:
+		if self.check(name):
 			start = os.getcwd()
 			os.chdir(self.repos[name]["path"])
 			call([command], shell=True)
@@ -200,6 +203,7 @@ class repos(object):
 		else:
 			for repo in self.repos:
 				getattr(self, func)(repo)
+
 
 def main():
 	(options, args) = parseOptions()
