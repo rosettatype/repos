@@ -31,6 +31,7 @@ def parseOptions():
 	return parser.parse_args()
 
 ERROR = "ERROR"
+REPORT = "REPORT"
 
 def logger(message, mode="INFO"):
 	"""
@@ -72,20 +73,35 @@ class repos(object):
 				output = json.dumps(self.repos, sort_keys=True, indent=4, separators=(',', ': '))
 				outfile.write(output)
 
-	def check(self, name):
+	def check(self, name, verbose=True):
 		"""
 		Check if record is active repo.
 		"""
 
-		if name in self.repos:
-			if os.path.isdir(os.path.join(self.repos[name]["path"], ".git")):
-				return True
+		if name != "all":
+			if name in self.repos:
+				path = self.repos[name]["path"]
+				if os.path.isdir(os.path.join(path, ".git")):
+					try:
+						start = os.getcwd()
+						os.chdir(path)
+						os.system('git rev-parse 2> /dev/null > /dev/null')
+						os.chdir(start)
+						if verbose:
+							logger("Repo record '%s' appears to be ok." % name, REPORT)
+						return True
+					except:
+						logger("Repo record '%s' does not point to a valid git repo." % name, ERROR)
+						return False
+				else:
+					logger("Repo record '%s' does not point to a folder." % name, ERROR)
+					return False
 			else:
-				logger("Folder '%s' saved under the name '%s' is not a git repo." % (self.repos[name]["path"], name), ERROR)
+				logger("Repo '%s' is not in the list of repos." % name, ERROR)
 				return False
 		else:
-			logger("Repo '%s' is not in the list." % name, ERROR)
-			return False
+			for name in self.repos:
+				self.check(name, verbose=verbose)
 
 	def add(self, name = "", path = ""):
 		"""
@@ -129,7 +145,7 @@ class repos(object):
 		Set enabled status for repo.
 		"""
 
-		if self.check(name):
+		if self.check(name, verbose=False):
 			logger("Enabling '%s'." % name)
 			self.repos[name]["enabled"] = True
 
@@ -138,7 +154,7 @@ class repos(object):
 		Set disabled status for repo.
 		"""
 
-		if self.check(name):
+		if self.check(name, verbose=False):
 			logger("Disabling '%s'." % name)
 			self.repos[name]["enabled"] = False
 
@@ -147,7 +163,7 @@ class repos(object):
 		Pull changes for repo with given name.
 		"""
 
-		if self.check(name):
+		if self.check(name, verbose=False):
 			logger("Updating '%s'." % name)
 			self.git("git pull;git submodule update --init --recursive", name)
 
@@ -159,7 +175,7 @@ class repos(object):
 		Pushing repo with given name.
 		"""
 
-		if self.check(name):
+		if self.check(name, verbose=False):
 			logger("Pushing '%s'." % name)
 			self.git("git push origin master", name)
 
@@ -168,7 +184,7 @@ class repos(object):
 		Show repo details.
 		"""
 
-		if self.check(name):
+		if self.check(name, verbose=False):
 			enabled = "enabled" if self.repos[name]["enabled"] else "disabled"
 			logger("%s %s (%s):\n  %s" % (name, enabled, self.repos[name]["path"]))
 
@@ -186,7 +202,7 @@ class repos(object):
 		Run git command for repo.
 		"""
 
-		if self.check(name):
+		if self.check(name, verbose=False):
 			start = os.getcwd()
 			os.chdir(self.repos[name]["path"])
 			call([command], shell=True)
@@ -211,7 +227,7 @@ def main():
 	if args:
 		r = repos()
 		try:
-			if args[0] in ["rm", "enable", "disable", "push", "up", "pull", "show"]:
+			if args[0] in ["check", "rm", "enable", "disable", "push", "up", "pull", "show"]:
 				if (len(args) > 1 and args[1] == "all"):
 					r.all(args[0])
 				else:
